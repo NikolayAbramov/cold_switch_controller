@@ -1,0 +1,11 @@
+*.bak
+*.bck
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*.net
+*.xlsx
+*.html
+homemade_pcb
+report.txt
+rescue-backup
+__Previews
