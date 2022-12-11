@@ -7,6 +7,9 @@ The first problem with such switches at the liquid He temperature 4K and below i
 To overcome the above mentioned problems the controller uses an adjustable pulsed current source instead of a voltage source to drive the coils. Both the current and pulse duration can be adjusted to achieve a reliable switching and a minimal power dissipation. Due to it's flexibility, the controller can be used to control RF switches also at room temperature which makes it a useful tool to have in you lab for test and experiment automation.
 
 It has a minimalistic formfactor of a 3U Eurorack module with absolutely no cotrols - everything is done using a web interface or an SCPI commands.
+
+<img src="/photos/photo_2020-07-08_19-38-45.jpg" alt="drawing" height="400"/> <img src="/photos/photo_2021-03-31_17-08-45.jpg" alt="drawing" height="400"/>
+
 # Specs
 
  - Power: 12V, fully protected against overvoltage up to 30V and reversed polarity
