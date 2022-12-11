@@ -13,5 +13,5 @@ It has a minimalistic formfactor of a 3U Eurorack module with absolutely no cotr
  - Interface: Ethernet with web interface and SCPI commands
  - Output: 2 channels for polarized SPnT switches with number of positions n up to 6
  - Drive current: 10-600 mA
- - Drive pulse width: 1 - 6000 ms
+ - Drive pulse width: 1 - 700 ms
  - Switch coil voltage: 12 V for room temperature operation, any for cryogenic applications
