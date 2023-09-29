@@ -7,6 +7,7 @@
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 #include "ip_arp_udp_tcp.h"
 #include "websrv_help_functions.h"
 #include "cold_sw_drv.h"
@@ -85,6 +86,9 @@ int main(void){
 		//Wait until button release
 		uint8_t vait_til_release = 0;
 		
+		//Disable watchdog
+		wdt_disable();
+		
         cli();
 		
 		sys_timer_conf();
@@ -94,6 +98,9 @@ int main(void){
 		
 		eeprom_read_block(myip, currentip, 4);
 		eeprom_read_block(mymac, currentmac, 6);
+		
+		//Enable watchdog
+		wdt_enable(WDTO_2S);
 		
         /*initialize enc28j60*/
         enc28j60Init(mymac);
@@ -120,6 +127,8 @@ int main(void){
 		sei();
 
         while(1){
+			//Reset watchdog
+			wdt_reset();
 			//Reset to default button
 			if( (handle_button( &BUTTON_PORT_PIN, RST_TO_DEF_MSK, RST_TO_DEF, RST_TO_DEF_DELAY) == 2 )&&(!vait_til_release) ){
 				eeprom_read_block(myip, defaultip, 4);
@@ -181,9 +190,9 @@ int main(void){
 			}									
 					
 			// handle ping and wait for a tcp packet
-			plen=enc28j60PacketReceive(BUFFER_SIZE, buf);
+			plen = enc28j60PacketReceive(BUFFER_SIZE, buf);
 			buf[BUFFER_SIZE]='\0';
-			dat_p=packetloop_arp_icmp_tcp(buf,plen);
+			dat_p = packetloop_arp_icmp_tcp(buf,plen);
 			
 			if(dat_p==0)
 				continue;
