@@ -9,3 +9,5 @@ homemade_pcb
 report.txt
 rescue-backup
 __Previews
+_autosave*
+*auto_saved_files*
