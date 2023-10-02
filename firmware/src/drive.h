@@ -62,3 +62,9 @@ extern void modify_sw_state(uint16_t*, uint8_t, uint8_t, uint8_t, uint8_t);
 extern void chan_off(uint16_t*, uint8_t);
 
 extern void wait_for_vcc();
+
+extern void status_led_on();
+extern uint8_t status_led_is_on();
+extern void status_led_off();
+extern void status_led_blinking ( uint32_t, uint32_t );
+extern void status_led_blink ( uint32_t );

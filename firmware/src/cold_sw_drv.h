@@ -32,3 +32,8 @@
 #define NCHAN 2
 //Number of relay positions per channel
 #define NPOS 6
+
+//Check this piece of crap every 10s
+#define ENC28J60_CHK_PERIOD 78125
+
+#define DEBUG

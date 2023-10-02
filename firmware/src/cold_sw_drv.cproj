@@ -112,6 +112,12 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="tcpip_srv.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="tcpip_srv.c">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="cold_sw_drv.h">
       <SubType>compile</SubType>
     </Compile>

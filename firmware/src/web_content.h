@@ -31,3 +31,6 @@ extern int8_t edit_net_sttings( char *, uint8_t *, uint8_t * );
 
 extern uint16_t print_applied_page(uint8_t *, uint8_t *, uint8_t *);
 extern uint16_t print_invalid_page(uint8_t *);
+#ifdef DEBUG
+extern uint16_t print_debug_page(uint8_t *);
+#endif

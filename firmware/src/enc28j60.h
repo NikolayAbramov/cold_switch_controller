@@ -168,6 +168,7 @@
 #define ESTAT_RXBUSY     0x04
 #define ESTAT_TXABRT     0x02
 #define ESTAT_CLKRDY     0x01
+#define ESTAT_BUFER		 0x40
 // ENC28J60 ECON2 Register Bit Definitions
 #define ECON2_AUTOINC    0x80
 #define ECON2_PKTDEC     0x40
@@ -262,6 +263,7 @@
 
 
 // functions
+extern void enc28j60HardReset( void );
 extern uint8_t enc28j60ReadOp(uint8_t op, uint8_t address);
 extern void enc28j60WriteOp(uint8_t op, uint8_t address, uint8_t data);
 extern void enc28j60ReadBuffer(uint16_t len, uint8_t* data);

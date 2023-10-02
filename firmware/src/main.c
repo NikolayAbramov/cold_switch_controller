@@ -7,7 +7,7 @@
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
 #include <avr/interrupt.h>
-//#include <avr/wdt.h>
+#include <avr/wdt.h>
 #include "ip_arp_udp_tcp.h"
 #include "websrv_help_functions.h"
 #include "cold_sw_drv.h"
@@ -20,24 +20,9 @@
 #include "string_functions.h"
 #include "scpi.h"
 #include "fixed_point.h"
-
-
-uint8_t defaultmac[6] EEMEM = DEFAULTMAC;
-uint8_t defaultip[4] EEMEM = DEFAULTIP;
-
-uint8_t currentip[4] EEMEM = DEFAULTIP;
-uint8_t currentmac[6] EEMEM = DEFAULTMAC;
-
-uint8_t myip[4];
-uint8_t mymac[6];	
+#include "tcpip_srv.h"
 
 static uint8_t buf[BUFFER_SIZE+1];
-
-void change_ip_mac(void)
-{
-	enc28J60WriteMAC (mymac);
-	init_udp_or_www_server(mymac,myip);
-}
 
 //Returns 0 if nothing happened, 
 //1 if button pressed, 
@@ -76,7 +61,7 @@ int main(void){
 		main_state = standby;
 		//do_switch - switch channel chan to new_sw_state
 		
-		//TCP packet lenght and pointer
+		//TCP packet length and pointer
 		uint16_t plen;
         uint16_t dat_p;
 		
@@ -86,38 +71,20 @@ int main(void){
 		//Wait until button release
 		uint8_t vait_til_release = 0;
 		
-		//Disable watchdog
-		//wdt_disable();
+		//Disable watchdog as manual says
+		wdt_disable();
 		
         cli();
 		
 		sys_timer_conf();
 		wait_for_vcc();
-		
         _delay_loop_1(0); // 60us
-		
-		eeprom_read_block(myip, currentip, 4);
-		eeprom_read_block(mymac, currentmac, 6);
-		
+		enc28j60HardReset();
+
 		//Enable watchdog 
-		//wdt_enable(WDTO_2S);
-		
-        /*initialize enc28j60*/
-        enc28j60Init(mymac);
-        enc28j60clkout(2); // change clkout from 6.25MHz to 12.5MHz
-        _delay_loop_1(0); // 60us
-        
-        /* Magjack leds configuration, see enc28j60 datasheet, page 11 */
-        // LEDB=yellow LEDA=green
-        //
-        // 0x476 is PHLCON LEDA=links status, LEDB=receive/transmit
-        // enc28j60PhyWrite(PHLCON,0b0000 0100 0111 01 10);
-        enc28j60PhyWrite(PHLCON,0x476);
-        
-        //init the web server ethernet/ip layer:
-        init_udp_or_www_server(mymac,myip);
-        www_server_port(MYWWWPORT);
-		
+		wdt_enable(WDTO_2S);
+
+		init_tcpip_server();
 		// Reset to default button
         BUTTON_DDR &= ~ RST_TO_DEF_MSK;
         BUTTON_PORT|= RST_TO_DEF_MSK; // internal pullup resistor on
@@ -128,14 +95,20 @@ int main(void){
 
         while(1){
 			//Reset watchdog
-			//wdt_reset();
+			wdt_reset();
+			
+			//Blink every 10 sec
+			status_led_blinking(78000, 1500);
+			
+			//Handle blinks from everything else
+			status_led_blink(0);
+			
+			//Check this piece of crap every 10s
+			enc28J60_maintainance( ENC28J60_CHK_PERIOD );
+			
 			//Reset to default button
 			if( (handle_button( &BUTTON_PORT_PIN, RST_TO_DEF_MSK, RST_TO_DEF, RST_TO_DEF_DELAY) == 2 )&&(!vait_til_release) ){
-				eeprom_read_block(myip, defaultip, 4);
-				eeprom_read_block(mymac, defaultmac, 6);
-				eeprom_update_block(myip, currentip, 4);
-				eeprom_update_block(mymac, currentmac, 6);
-				change_ip_mac();
+				set_default_ip_mac();
 				vait_til_release = 1;
 			}				
 			if(vait_til_release){
@@ -191,11 +164,18 @@ int main(void){
 					
 			// handle ping and wait for a tcp packet
 			plen = enc28j60PacketReceive(BUFFER_SIZE, buf);
+			/*
+			if (plen)
+			{
+				status_led_blink(1000);
+			}
+			*/
 			buf[BUFFER_SIZE]='\0';
 			dat_p = packetloop_arp_icmp_tcp(buf,plen);
 			
 			if(dat_p==0)
 				continue;
+			status_led_blink(1000);	
 				
 			//memcpy_P(buf, PSTR("GET /settings?width=1000&current=156&delay=36 HTTP/1.1"), 54);
 			//memcpy_P(buf, PSTR("GET /ip_mac HTTP/1.1"), 20);
@@ -276,8 +256,7 @@ int main(void){
 					if( buf[dat_p+4+7] == '?' ){
 						if( state == standby){						 
 							if( edit_net_sttings( (char *)&(buf[dat_p+4]), mymac, myip) ){
-								eeprom_update_block( myip,currentip, 4 );
-								eeprom_update_block( mymac,currentmac, 6 );
+								change_current_ip_mac();
 								plen = print_applied_page(buf, mymac, myip);
 								www_server_reply(buf,plen, 1);
 								//Change mac and ip
@@ -290,7 +269,16 @@ int main(void){
 						}
 						goto REPLY;
 					}
-				}					
+				}		
+#ifdef DEBUG				
+				//Debug page	
+				if( !strncmp_P( (char *)&(buf[dat_p+4]),PSTR("/debug"),6 ) ){
+					if( buf[dat_p+4+6] == ' ' ){
+						plen = print_debug_page(buf);
+						goto REPLY;
+					}
+				}
+#endif											
 				//Main page command handling
 				if(state == standby){
 					if( !strncmp_P( (char *)&(buf[dat_p+4]),PSTR("/?"),2 ) ){
@@ -337,16 +325,30 @@ REPLY:
 							goto SCPI_REPLY;
 						}	
 					}
+				}
+				//Set state without switching
+				if( !strncmp_P((char *)&(buf[dat_p]),PSTR("set:stat"),8) ){
+					//command
+					if( buf[dat_p+8] == ' '){
+						new_sw_state = sw_state;
+						if( parse_state( (char*)&buf[dat_p+9], &new_sw_state ) ){
+							new_sw_state &= enabled_pos;
+							if(new_sw_state != sw_state){
+								sw_state = new_sw_state;
+								plen = say_true(buf);
+							}
+							else
+							{
+								plen = say_disabled(buf);
+							}
+							goto SCPI_REPLY;
+						}
+					}
+					
 				}						
 				plen = say_false(buf);
 				goto SCPI_REPLY;															
 			}
-					/*
-					if( !strncmp_P((char *)&(buf[dat_p]),PSTR("chan"),4) ){
-						if( handle_chan( &plen, buf, (char *)&(buf[dat_p+4]) , &channels ) )
-							switch_relays(channels);
-						goto SCPI_REPLY;	
-					}*/
 			continue;		
 SCPI_REPLY:																				
 			www_server_reply(buf,plen,0);

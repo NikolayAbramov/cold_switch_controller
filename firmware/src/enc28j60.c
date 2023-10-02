@@ -33,6 +33,7 @@ static uint8_t Enc28j60Bank;
 static int16_t gNextPacketPtr;
 #define ENC28J60_CONTROL_PORT   PORTB
 #define ENC28J60_CONTROL_DDR    DDRB
+#define ENC28J60_CONTROL_RST	PORTB1
 #if defined(__AVR_ATmega88__) || defined(__AVR_ATmega8A__) || defined(__AVR_ATmega88P__) || defined(__AVR_ATmega168__) || defined(__AVR_ATmega168P__)||defined(__AVR_ATmega168PA__) || defined(__AVR_ATmega328P__) 
 #define ENC28J60_CONTROL_CS PORTB2
 #define ENC28J60_CONTROL_SO PORTB4
@@ -191,11 +192,22 @@ void enc28J60WriteMAC (uint8_t * macaddr)
      enc28j60Write(MAADR0, macaddr[5]);
 }
 
+//Hard reset
+void enc28j60HardReset( void )
+{
+	ENC28J60_CONTROL_PORT&= ~(1<<ENC28J60_CONTROL_RST);
+	_delay_loop_2(2000); // 1ms
+	ENC28J60_CONTROL_PORT|= 1<<ENC28J60_CONTROL_RST;
+	_delay_loop_2(2000); // 1ms
+}
+
 void enc28j60Init(uint8_t* macaddr)
 {
 	// initialize I/O
         // ss as output:
-	ENC28J60_CONTROL_DDR |= 1<<ENC28J60_CONTROL_CS;
+	ENC28J60_CONTROL_DDR |= 1<<ENC28J60_CONTROL_CS| 1<<ENC28J60_CONTROL_RST;
+	//Remove reset
+	ENC28J60_CONTROL_PORT|=(1<<ENC28J60_CONTROL_RST);
 	CSPASSIVE; // ss=0
         //	
 	ENC28J60_CONTROL_DDR  |= 1<<ENC28J60_CONTROL_SI | 1<<ENC28J60_CONTROL_SCK; // mosi, sck output

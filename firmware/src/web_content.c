@@ -19,6 +19,7 @@
 #include "drive.h"
 #include "fixed_point.h"
 #include "timeout.h"
+#include "tcpip_srv.h"
 
 uint16_t http200ok(uint8_t *buf)
 {
@@ -140,8 +141,7 @@ uint16_t print_mainpage(uint8_t *buf, uint8_t locked)
 				"<br><a href=\"./ip_mac\">[IP and MAC]</a>\t<a href=\".\">[Refresh]</a>\n"
 				"<br>"));
 		}
-		plen=fill_tcp_data_p(buf,plen,PSTR("\n</pre><hr>N. Abramov, 2016. Based on <b>tuxgraphics</b> TCP/IP stack."));
-						
+		plen=fill_tcp_data_p(buf,plen,PSTR("\n</pre><hr>N. Abramov, 2016. Based on <b>tuxgraphics</b> TCP/IP stack.")); 			
 		plen=fill_tcp_data_p(buf,plen,PSTR("\n<meta http-equiv=\"refresh\" content=\""));
 		
 		if(locked)
@@ -150,15 +150,7 @@ uint16_t print_mainpage(uint8_t *buf, uint8_t locked)
 			plen=fill_tcp_data_p(buf,plen,PSTR("3"));
 				
 		plen=fill_tcp_data_p(buf,plen,PSTR("\">"));	
-		//Debug info
-		/*
-		itoa((int)TIFR1,strbuf,10);
-		plen = fill_tcp_data_len(buf,plen, (uint8_t*) strbuf, strlen(strbuf));
-		plen=fill_tcp_data_p(buf,plen,PSTR("  "));	
-		
-		itoa(plen,strbuf,10);
-		plen = fill_tcp_data_len(buf,plen, (uint8_t*) strbuf, strlen(strbuf));
-        */
+
 		return(plen);
 }
 
@@ -398,3 +390,32 @@ uint16_t print_invalid_page(uint8_t *buf)
 	"<a href=\".\">[Home]</a>"));
 	return(plen);
 }
+
+#ifdef DEBUG
+uint16_t print_debug_page(uint8_t *buf)
+{
+        uint16_t plen=0;
+		char strbuf[8];
+		
+        plen = http200ok(buf);
+		plen=fill_tcp_data_p(buf,plen,PSTR("\nDebug"));
+		
+		plen=fill_tcp_data_p(buf,plen,PSTR("\n<br>econ1_rxen_fault_cnt = "));
+		itoa(econ1_rxen_fault_cnt,strbuf,10);
+		plen = fill_tcp_data_len(buf,plen, (uint8_t*) strbuf, strlen(strbuf));
+		
+		plen=fill_tcp_data_p(buf,plen,PSTR("\n<br>estat_bufer_fault_cnt = "));
+		itoa(estat_bufer_fault_cnt,strbuf,10);
+		plen = fill_tcp_data_len(buf,plen, (uint8_t*) strbuf, strlen(strbuf));
+		
+		plen=fill_tcp_data_p(buf,plen,PSTR("\n<br>eir_rxerif_fault_cnt = "));
+		itoa(eir_rxerif_fault_cnt,strbuf,10);
+		plen = fill_tcp_data_len(buf,plen, (uint8_t*) strbuf, strlen(strbuf));
+		
+		plen=fill_tcp_data_p(buf,plen,PSTR("\n<br>plen = "));
+		itoa(plen,strbuf,10);
+		plen = fill_tcp_data_len(buf,plen, (uint8_t*) strbuf, strlen(strbuf));
+			
+		return(plen);
+}
+#endif

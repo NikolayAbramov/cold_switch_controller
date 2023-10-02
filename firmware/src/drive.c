@@ -51,7 +51,11 @@ ISR(PCINT2_vect)
 void drive_init()
 {
 	//Relay drive
-	DDRC = 0b00000111;
+	//PC0 - SDI
+	//PC1 - LC
+	//PC2 - SC
+	//PC3 - LED
+	DDRC = 0b00001111;
 	//PWM output OC2B for current limit
 	DDRD |= 1<<PORTD3;
 	TCCR2A |= (1<<WGM20) | (1<<WGM21);
@@ -257,4 +261,72 @@ void wait_for_vcc()
 					start_time = cpu_time();
 			}				
 		}
-}		
+}
+
+void status_led_on(void)
+{
+	PORTC |= 1<<PORTC3;
+}
+
+uint8_t status_led_is_on(void)
+{
+	if ( PINC & (1<<PORTC3) )
+	{
+		return 1;
+	}
+	return 0;
+}
+
+void status_led_off(void)
+{
+	PORTC &= ~(1<<PORTC3);
+}
+
+void status_led_blinking(uint32_t period, uint32_t duration)
+{
+	static uint32_t led_start_time = 0;
+	static uint8_t led_is_on = 0;
+	
+	if( led_is_on )
+	{
+		if (cpu_time() - led_start_time >  duration)
+		{
+			status_led_off();
+			led_is_on = 0;
+		}
+	}
+	 
+	if (cpu_time() - led_start_time >  period)
+	{
+		status_led_on();
+		led_start_time = cpu_time();
+		led_is_on = 1;
+	}
+}
+
+//Single blink 
+void status_led_blink(uint32_t delay)
+{
+	static uint32_t led_start_time = 0 ;
+	static uint32_t captured_delay = 0 ;
+	static uint8_t led_is_on = 0;
+	
+	if ( delay )
+	{
+		status_led_on();
+		led_start_time = cpu_time();
+		captured_delay = delay;
+		led_is_on = 1;
+	} 
+	else
+	{
+		if ( cpu_time() - led_start_time >  captured_delay )
+		{
+			if ( led_is_on )
+			{
+				status_led_off();
+				led_is_on = 0;
+			}
+		}
+	}
+}
